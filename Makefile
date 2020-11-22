@@ -1,4 +1,4 @@
-DIR = /home/ubuntu
+DIR = /Development
 RESULT = lidarBot
 MIIBOO_LIB = $(DIR)/miiboo_driver/libmiiboo_class.a
 MIIBOO_INC = $(DIR)/miiboo_driver/include
@@ -11,7 +11,7 @@ OBJS = $(SRCS:.cpp=.o)
 .PHONY: clean
 
 all:
-	g++ -I$(MIIBOO_INC) -I$(LIDAR_INC) -std=c++11 -lrt -pthread $(SRCS) $(MIIBOO_LIB) $(LIDAR_LIB) -o LidarBot
+	g++ -I$(MIIBOO_INC) -I$(LIDAR_INC) -std=c++11 -Wall -lrt -pthread $(SRCS) $(MIIBOO_LIB) $(LIDAR_LIB) -o LidarBot
 
 clean:
 	rm $(RESULT) || true
