@@ -17,13 +17,17 @@
 //  10.0.0.239 PI
 //  ./LidarBot /dev/ttyUSB1 /dev/ttyUSB0
 
-// Break the 360 degree scan into SECTORS
-#define SECTORS     74
-#define F_SECTOR    (SECTORS/2)
-#define OFFSET      (SECTORS/4)
-#define L_SECTOR    (F_SECTOR-OFFSET)
-#define R_SECTOR    (F_SECTOR+OFFSET)
-#define TOO_CLOSE   (float)(0.1)
+// Break the scan into SECTORS
+#define SCAN_START      180
+#define SCAN_END        540
+#define SCANS           (SCAN_END-SCAN_START)
+#define SECTORS         36
+#define F_SECTOR        (SECTORS/2)
+#define OFFSET          (SECTORS/4)
+#define L_SECTOR        (F_SECTOR-OFFSET)
+#define R_SECTOR        (F_SECTOR+OFFSET)
+#define TOO_CLOSE       (float)(0.1)
+#define SCANS_SECTOR    (SCANS/SECTORS)
 
 enum STATE  {
                 STATE_TURN_TO_MAX,
@@ -52,22 +56,32 @@ static int ReadLidar( CYdLidar *laser, float *max_range, int *direction_of_max_r
 {
     bool        hardError;
     LaserScan   scan;                   // Lidar results
+    float       max;
     int         i;
 
     *direction_of_max_range = -1;
+
+    // Get data from Lidar
     if(laser->doProcessSimple(scan, hardError))
     {
         int points  = (unsigned int)scan.ranges.size();
-        int samples = (points/SECTORS);
 
-        memset((void *)sectors, 0, sizeof(float)*SECTORS);
-        for(i=0; i<points; ++i)
+        printf("points = %d\n", points);
+        for(int k=0; k<SECTORS; ++k)
         {
-            sectors[i/samples] += scan.ranges[i];
-            if(i && i%samples == 0)
-                sectors[(i/samples)-1] /= samples;
+            max = 0.0;
+            for(i=0; i<SCANS_SECTOR; ++i)
+            {
+                // Scale ranges from 0.0 to 1.0
+                float range = scan.ranges[SCAN_START+k*SCANS_SECTOR+i]/10.0;
+                if( range > max)
+                    max = range;
+            }
+            sectors[k] = max;
         }
-        for(i=1, *max_range = 0.0;  i<(SECTORS-1); ++i)
+
+        // Find max
+        for(i=0, *max_range = 0.0;  i<SECTORS; ++i)
         {
             if( sectors[i] > *max_range )
             {
@@ -88,7 +102,7 @@ static int VisualizeRanges( float *sectors, int points, int direction_of_max_ran
     for(int i=0; i<SECTORS; ++i)
     {
         printf("\n %0d", i);
-        for(int k=0; k<(int)(40.0*sectors[i]/(points/SECTORS)); ++k)
+        for(int k=0; k<(int)(40.0*sectors[i]); ++k)
             printf("*");
         if( direction_of_max_range == i )
             printf(">");
@@ -142,7 +156,7 @@ int main(int argc, char **argv)
             float left     = sectors[L_SECTOR];
             float right    = sectors[R_SECTOR];
             float forward  = sectors[F_SECTOR];
-
+#if 1
             printf("%f %f %f %d %f ", left, forward, right, direction_of_max_range, max_range);
             switch(state)
             {
@@ -173,11 +187,11 @@ int main(int argc, char **argv)
                     }
                     break;
             }
-#if 0
+#endif
+#if 1
             VisualizeRanges( sectors, points, direction_of_max_range );
 #endif
         }
-        break;
         usleep(25*1000);
     }
 
@@ -187,5 +201,7 @@ int main(int argc, char **argv)
     sleep(1);
     delete laser;
     delete miiboo_object;
+    sleep(1);
+    exit(0);
 } // main()
 
