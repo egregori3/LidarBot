@@ -55,16 +55,18 @@ int main(int argc, char **argv)
     printf("\n\nInstantiating driver\n");
     miiboo_driver *miiboo_object = new miiboo_driver(argv[2]);
 
-    miiboo_object->move((unsigned char *)"r");
     while(running)
     {
+        miiboo_object->move((unsigned char *)"r");
         if(laser.doProcessSimple(scan, hardError))
         {
+            int points = (unsigned int)scan.ranges.size();
+
             printf("\n\n\n");
             for(int i=0; i<SECTORS; ++i)
                 sector[i] = 0.0;
-            for(int i=0; i<(unsigned int)scan.ranges.size(); ++i)
-                sector[i/SECTORS] += scan.ranges[i];
+            for(int i=0; i<points; ++i)
+                sector[i/(points/SECTORS)] += scan.ranges[i];
             for(int i=0, furthest = 0.0;  i<SECTORS; ++i)
             {
                 if( sector[i] > furthest )
@@ -76,15 +78,15 @@ int main(int argc, char **argv)
             for(int i=0; i<SECTORS; ++i)
             {
                 printf("\n %0d", i);
-                for(int k=0; k<(int)(40.0*sector[i]/SECTORS); ++k)
+                for(int k=0; k<(int)(40.0*sector[i]/(points/SECTORS)); ++k)
                     printf("*");
                 if( direction == i )
                     printf(">");
             }
-            if( direction == 5)
+            if( direction == (38))
                 running = false;
         }
-        usleep(100*1000);
+        usleep(25*1000);
     }
 
     miiboo_object->move((unsigned char *)"s");

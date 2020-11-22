@@ -1,9 +1,9 @@
-
+DIR = /home/ubuntu
 RESULT = lidarBot
-MIIBOO_LIB = /Development/miiboo_controller/libmiiboo_class.a
-MIIBOO_INC = /Development/miiboo_controller/include
-LIDAR_LIB = /Development/lidar/lidar_driver.a
-LIDAR_INC = /Development/lidar/include
+MIIBOO_LIB = $(DIR)/miiboo_driver/libmiiboo_class.a
+MIIBOO_INC = $(DIR)/miiboo_driver/include
+LIDAR_LIB  = $(DIR)/lidar/lidar_driver.a
+LIDAR_INC  = $(DIR)/lidar/include
 
 SRCS = LidarBot.cpp
 OBJS = $(SRCS:.cpp=.o)
