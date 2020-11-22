@@ -22,15 +22,19 @@
 #define SCAN_END        540
 #define SCANS           (SCAN_END-SCAN_START)
 #define SECTORS         36
-#define F_SECTOR        (SECTORS/2)
-#define OFFSET          (SECTORS/4)
-#define L_SECTOR        (F_SECTOR-OFFSET)
-#define R_SECTOR        (F_SECTOR+OFFSET)
+#define WIDTH           4
+#define L_SECTOR_START  ((SECTORS/2)-WIDTH-(WIDTH/2))
+#define L_SECTOR_END    ((SECTORS/2)-(WIDTH/2))
+#define R_SECTOR_END    ((SECTORS/2)+WIDTH+(WIDTH/2))
+#define R_SECTOR_START  ((SECTORS/2)+(WIDTH/2))
+#define F_SECTOR_START  L_SECTOR_END
+#define F_SECTOR_END    R_SECTOR_END
 #define TOO_CLOSE       (float)(0.1)
 #define SCANS_SECTOR    (SCANS/SECTORS)
 
 enum STATE  {
-                STATE_TURN_TO_MAX,
+                STATE_SET_TURN,
+                STATE_TURN,
                 STATE_MOVE_FORWARD
             };
 
@@ -119,6 +123,7 @@ int main(int argc, char **argv)
     float       max_range;              // Furthest distance measured
     int         direction_of_max_range; // Sector containing furthest distance
     STATE       state;
+    unsigned char turn;
 
     // Verify command line
     if( argc != 3 )
@@ -145,24 +150,56 @@ int main(int argc, char **argv)
     miiboo_driver *miiboo_object = new miiboo_driver(argv[2]);
 
     // Set initial state
-    state = STATE_MOVE_FORWARD;
+    state = STATE_SET_TURN;
 
     printf("Start the loop\n");
     while(running)
     {
         if( int points = ReadLidar( laser, &max_range, &direction_of_max_range, sectors ) )
         {
-            float left     = sectors[L_SECTOR];
-            float right    = sectors[R_SECTOR];
-            float forward  = sectors[F_SECTOR];
-#if 1
+            float left;
+            float right;
+            float forward;
+
+            left = 0.0;
+            for(int i=L_SECTOR_START; i<=L_SECTOR_END; ++i)
+                left += sectors[i];
+            right = 0.0;
+            for(int i=R_SECTOR_START; i<=R_SECTOR_END; ++i)
+                right += sectors[i];
+            forward = 0.0;
+            for(int i=F_SECTOR_START; i<=F_SECTOR_END; ++i)
+                forward += sectors[i];
+
+            forward /= WIDTH;
+            right /= WIDTH;
+            left /= WIDTH;
+ #if 1
             printf("%f %f %f %d %f ", left, forward, right, direction_of_max_range, max_range);
             switch(state)
             {
-                case STATE_TURN_TO_MAX:
+                case STATE_SET_TURN:
                     printf("rotate\n");
-                    miiboo_object->move((unsigned char *)"r");
-                    if(direction_of_max_range > L_SECTOR && direction_of_max_range < R_SECTOR)
+                    if(direction_of_max_range < F_SECTOR_START)
+                    {
+                        turn = 'l';
+                        miiboo_object->move((unsigned char *)"l");
+                    }
+                    else
+                    {
+                        turn = 'r';
+                        miiboo_object->move((unsigned char *)"r");
+                    }
+
+                    state = STATE_TURN;
+                    break;
+                case STATE_TURN:
+                    printf("turning\n");
+                    miiboo_object->move(&turn);
+                    if( max_range < (2.0*TOO_CLOSE) )
+                        break;
+
+                    if(direction_of_max_range > F_SECTOR_START && direction_of_max_range < F_SECTOR_END)
                     {
                         miiboo_object->move((unsigned char *)"s");
                         state = STATE_MOVE_FORWARD;
@@ -170,7 +207,7 @@ int main(int argc, char **argv)
                     break;
                 case STATE_MOVE_FORWARD:
                     // LM(0-9) = 4.5*F+4.5*R    RM(0-9) = 4.5*F+4.5*L
-                    int speed[] = {'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o'};
+                    int speed[] = {'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O'};
                     unsigned char m[3];
 
                     printf("forward ");
@@ -179,13 +216,11 @@ int main(int argc, char **argv)
                     m[2] = speed[(int)(4.5*forward+4.5*left)];
                     printf(" %c %c\n", m[1], m[2]);
                     miiboo_object->move(m);
-#if 0                    
                     if(left < TOO_CLOSE || right < TOO_CLOSE || forward < TOO_CLOSE)
                     {
                         miiboo_object->move((unsigned char *)"s");
-                        state = STATE_TURN_TO_MAX;
+                        state = STATE_SET_TURN;
                     }
-#endif
                     break;
             }
 #endif
