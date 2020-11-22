@@ -145,12 +145,11 @@ int main(int argc, char **argv)
     miiboo_driver *miiboo_object = new miiboo_driver(argv[2]);
 
     // Set initial state
-    state = STATE_TURN_TO_MAX;
+    state = STATE_MOVE_FORWARD;
 
     printf("Start the loop\n");
     while(running)
     {
-        miiboo_object->move((unsigned char *)"r");
         if( int points = ReadLidar( laser, &max_range, &direction_of_max_range, sectors ) )
         {
             float left     = sectors[L_SECTOR];
@@ -179,12 +178,14 @@ int main(int argc, char **argv)
                     m[1] = speed[(int)(4.5*forward+4.5*right)];
                     m[2] = speed[(int)(4.5*forward+4.5*left)];
                     printf(" %c %c\n", m[1], m[2]);
-                    miiboo_object->move((unsigned char *)"f");
+                    miiboo_object->move(m);
+#if 0                    
                     if(left < TOO_CLOSE || right < TOO_CLOSE || forward < TOO_CLOSE)
                     {
                         miiboo_object->move((unsigned char *)"s");
                         state = STATE_TURN_TO_MAX;
                     }
+#endif
                     break;
             }
 #endif
