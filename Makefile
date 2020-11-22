@@ -1,4 +1,4 @@
-DIR = /Development
+DIR = /home/ubuntu/
 RESULT = lidarBot
 MIIBOO_LIB = $(DIR)/miiboo_driver/libmiiboo_class.a
 MIIBOO_INC = $(DIR)/miiboo_driver/include

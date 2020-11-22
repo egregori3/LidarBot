@@ -67,7 +67,7 @@ static int ReadLidar( CYdLidar *laser, float *max_range, int *direction_of_max_r
             if(i && i%samples == 0)
                 sectors[(i/samples)-1] /= samples;
         }
-        for(i=0, *max_range = 0.0;  i<SECTORS; ++i)
+        for(i=1, *max_range = 0.0;  i<(SECTORS-1); ++i)
         {
             if( sectors[i] > *max_range )
             {
@@ -143,12 +143,13 @@ int main(int argc, char **argv)
             float right    = sectors[R_SECTOR];
             float forward  = sectors[F_SECTOR];
 
+            printf("%f %f %f %d %f ", left, forward, right, direction_of_max_range, max_range);
             switch(state)
             {
                 case STATE_TURN_TO_MAX:
-                    printf("rotate %f %f %f\n", left, forward, right);
+                    printf("rotate\n");
                     miiboo_object->move((unsigned char *)"r");
-                    if(direction_of_max_range == F_SECTOR)
+                    if(direction_of_max_range > L_SECTOR && direction_of_max_range < R_SECTOR)
                     {
                         miiboo_object->move((unsigned char *)"s");
                         state = STATE_MOVE_FORWARD;
@@ -159,7 +160,7 @@ int main(int argc, char **argv)
                     int speed[] = {'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o'};
                     unsigned char m[3];
 
-                    printf("forward %f %f %f ", left, forward, right);
+                    printf("forward ");
                     m[0] = 'm';
                     m[1] = speed[(int)(4.5*forward+4.5*right)];
                     m[2] = speed[(int)(4.5*forward+4.5*left)];
@@ -176,12 +177,15 @@ int main(int argc, char **argv)
             VisualizeRanges( sectors, points, direction_of_max_range );
 #endif
         }
+        break;
         usleep(25*1000);
     }
 
     miiboo_object->move((unsigned char *)"s");
     laser->turnOff();
     laser->disconnecting();
+    sleep(1);
+    delete laser;
     delete miiboo_object;
 } // main()
 
