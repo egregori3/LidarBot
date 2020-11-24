@@ -12,9 +12,10 @@ OBJS = $(SRCS:.cpp=.o)
 
 all:
 	g++ -I$(MIIBOO_INC) -I$(LIDAR_INC) -std=c++11 -Wall -lrt -pthread $(SRCS) $(MIIBOO_LIB) $(LIDAR_LIB) -o LidarBot
+	g++ -I$(MIIBOO_INC) -I$(LIDAR_INC) -std=c++11 -Wall -lrt -pthread Manual.cpp $(MIIBOO_LIB) $(LIDAR_LIB) -o Manual
 
 clean:
 	rm $(RESULT) || true
 	rm *.o || true
 	rm $(RESULT)_driver.a
-
+	rm Manual || true
