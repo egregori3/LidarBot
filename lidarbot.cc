@@ -151,20 +151,27 @@ LidarBot::LidarBot(char *motor_port, char *lidar_port)
     laser->setIntensities(0);
     laser->initialize();
 
-    // Instantiate the motor driver
-    printf("Instantiating driver\n");
-    miiboo_driver *miiboo_object = new miiboo_driver(motor_port);
-    miiboo_object->move((unsigned char *)"s");
+    if(lidar_port == NULL)
+    {
+        // Instantiate the motor driver
+        printf("Instantiating driver\n");
+        miiboo_driver *miiboo_object = new miiboo_driver(motor_port);
+        miiboo_object->move((unsigned char *)"s");
+    }
+    else
+        miiboo_driver *miiboo_object = NULL;
 }
 
 LidarBot::~LidarBot()
 {
-    miiboo_object->move((unsigned char *)"s");
+    if(miiboo_object != NULL)
+        miiboo_object->move((unsigned char *)"s");
     laser->turnOff();
     laser->disconnecting();
     sleep(1);
     delete laser;
-    delete miiboo_object;
+    if(miiboo_object != NULL)
+        delete miiboo_object;
     sleep(1);
 }
 

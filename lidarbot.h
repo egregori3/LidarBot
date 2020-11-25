@@ -39,7 +39,8 @@ class LidarBot
         int VisualizeRanges(void);
         void Move(unsigned char *cmd)
         {
-            miiboo_object->move(cmd);
+            if(miiboo_object != NULL)
+                miiboo_object->move(cmd);
         }
         ~LidarBot(void);
 };
