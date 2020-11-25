@@ -1,21 +1,31 @@
-DIR = /home/ubuntu/
-RESULT = lidarBot
+# Written by Eric Gregori
+
+DIR        = ../
+APP1       = algorithm1
+APP2       = manual
 MIIBOO_LIB = $(DIR)/miiboo_driver/libmiiboo_class.a
 MIIBOO_INC = $(DIR)/miiboo_driver/include
 LIDAR_LIB  = $(DIR)/lidar/lidar_driver.a
 LIDAR_INC  = $(DIR)/lidar/include
+LIBS       = $(MIIBOO_LIB) $(LIDAR_LIB)
+INC        = -I$(LIDAR_INC) -I$(MIIBOO_INC) -I./
 
-SRCS = LidarBot.cpp
+SRCS = lidarbot.cc
 OBJS = $(SRCS:.cpp=.o)
+
+CFLAGS = -Wall -lrt -pthread
 
 .PHONY: clean
 
-all:
-	g++ -I$(MIIBOO_INC) -I$(LIDAR_INC) -std=c++11 -Wall -lrt -pthread $(SRCS) $(MIIBOO_LIB) $(LIDAR_LIB) -o LidarBot
-	g++ -I$(MIIBOO_INC) -I$(LIDAR_INC) -std=c++11 -Wall -lrt -pthread Manual.cpp $(MIIBOO_LIB) $(LIDAR_LIB) -o Manual
+all: $(APP1) $(APP2)
+
+$(APP1):
+	g++ $(INC) -std=c++11 $(CFLAGS) $(SRCS) $(APP1).cc $(LIBS) -o $(APP1)
+
+$(APP2):
+	g++ $(INC) -std=c++11 $(CFLAGS) $(SRCS) $(APP2).cc $(LIBS) -o $(APP2)
 
 clean:
-	rm $(RESULT) || true
-	rm *.o || true
-	rm $(RESULT)_driver.a
-	rm Manual || true
+	rm $(APP1) || true
+	rm $(APP2) || true
+
