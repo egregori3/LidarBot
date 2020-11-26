@@ -3,7 +3,6 @@
 DIR        = ../
 APP1       = algorithm1
 APP2       = manual
-APP3       = lidartest
 MIIBOO_LIB = $(DIR)/miiboo_driver/libmiiboo_class.a
 MIIBOO_INC = $(DIR)/miiboo_driver/include
 LIDAR_LIB  = $(DIR)/lidar/lidar_driver.a
@@ -18,7 +17,7 @@ CFLAGS = -Wall -lrt -pthread
 
 .PHONY: clean
 
-all: $(APP1) $(APP2) $(APP3)
+all: $(APP1) $(APP2) 
 
 $(APP1):
 	g++ $(INC) -std=c++11 $(CFLAGS) $(SRCS) $(APP1).cc $(LIBS) -o $(APP1)
@@ -26,12 +25,8 @@ $(APP1):
 $(APP2):
 	g++ $(INC) -std=c++11 $(CFLAGS) $(SRCS) $(APP2).cc $(LIBS) -o $(APP2)
 
-$(APP3):
-	g++ $(INC) -std=c++11 $(CFLAGS) $(SRCS) $(APP3).cc $(LIBS) -o $(APP3)
-
 
 clean:
 	rm $(APP1) || true
 	rm $(APP2) || true
-	rm $(APP3) || true
 

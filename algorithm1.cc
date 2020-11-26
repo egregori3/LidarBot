@@ -9,9 +9,9 @@
 
 // Personality
 #define TOO_CLOSE_ACTUAL  (float)(0.5)
-#define LOOKS_INTERESTING_ACTUAL (float)(1.5)
-#define FORWARD_GAIN      (float)(16.0)
-#define OFFSET_GAIN       (float)(8.0)
+#define LOOKS_INTERESTING_ACTUAL (float)(2.0)
+#define FORWARD_GAIN      (float)(32.0)
+#define OFFSET_GAIN       (float)(16.0)
 
 enum STATE  {
                 STATE_STOP,
@@ -47,7 +47,7 @@ int main(int argc, char **argv)
     else
     {
         printf("\n\nCommand line\n\n");
-        printf("%s %s", argv[0], "[lidar /dev/ttyUSB1] [miiboo /dev/ttyUSB0] enable\n\n");
+        printf("%s %s", argv[0], "[motor /dev/ttyUSB1] [lidar /dev/ttyUSB0] enable\n\n");
         return -1;
     }
 
@@ -92,7 +92,7 @@ STATE Algorithm(STATE state, LidarBot *robot)
     robot->GetSectors(&left, &forward, &right);
     printf("\033[0;0H");
     for(int i=0; i<45; ++i)
-        printf("%90c\n", ' ');
+        printf("%100c\n", ' ');
     printf("\033[0;0H");
     printf("\n\n\n");
     printf("%d-%d %d-%d %d-%d\n", robot->l_sector_start, robot->l_sector_end,
@@ -111,9 +111,9 @@ STATE Algorithm(STATE state, LidarBot *robot)
         case STATE_SET_TURN:
             printf("\nSTATE: LOOKING FOR SOMETHING INTERESTING\n");
             if(robot->furthest.raw < robot->f_sector_start)
-                state = STATE_TURN_LEFT;
-            else
                 state = STATE_TURN_RIGHT;
+            else
+                state = STATE_TURN_LEFT;
             break;
         case STATE_TURN_LEFT:
             printf("\nSTATE: TURNING LEFT\n");
@@ -137,12 +137,35 @@ STATE Algorithm(STATE state, LidarBot *robot)
             break;
         case STATE_MOVE_FORWARD:
             unsigned char m[3];
+            int lspeed, rspeed;
 
             printf("\nSTATE: FORWARD ");
+            rspeed = (int)(FORWARD_GAIN*forward.norm+OFFSET_GAIN*left.norm);
+            lspeed = (int)(FORWARD_GAIN*forward.norm+OFFSET_GAIN*right.norm);
+            if(rspeed > 32 || lspeed > 32)
+            {
+                if(rspeed == lspeed)
+                {
+                    lspeed = 32;
+                    rspeed = 32;
+                }
+                else if(rspeed > lspeed)
+                {
+                    int diff = rspeed-lspeed;
+                    rspeed = 32;
+                    lspeed = 32-diff;
+                }
+                else
+                {
+                    int diff = lspeed-rspeed;
+                    lspeed = 32;
+                    rspeed = 32-diff;
+                 }
+            }
+            printf("%d %d", lspeed, rspeed);
             m[0] = 'm';
-            m[1] = (unsigned char)('A'+(int)(FORWARD_GAIN*forward.norm+OFFSET_GAIN*left.norm));
-            m[2] = (unsigned char)('A'+(int)(FORWARD_GAIN*forward.norm+OFFSET_GAIN*right.norm));
-            printf(" %c %c\n", m[1], m[2]);
+            m[1] = (unsigned char)(128+rspeed);
+            m[2] = (unsigned char)(128+lspeed);
             robot->Move(m);
             if(right.raw < TOO_CLOSE_ACTUAL || forward.raw < TOO_CLOSE_ACTUAL || left.raw < TOO_CLOSE_ACTUAL)
             {

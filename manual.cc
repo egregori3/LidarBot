@@ -12,7 +12,7 @@
 #define LOOKS_INTERESTING_ACTUAL (float)(1.5)
 
 
-int Algorithm(LidarBot *);
+void Algorithm(LidarBot *);
 
 // Used to exit the main loop via ctrl-c signal
 static bool running = true;
@@ -27,49 +27,62 @@ static void Stop(int signo)
 
 int main(int argc, char **argv)
 {
-    bool            move = false;
-
-    // Verify command line
-    if( argc == 3 )
-        move = false;
-    else if( argc == 4 )
-        move = true;
-    else
-    {
-        printf("\n\nCommand line\n\n");
-        printf("%s %s", argv[0], "[lidar /dev/ttyUSB1] [miiboo /dev/ttyUSB0] enable\n\n");
-        return -1;
-    }
-
+    LidarBot *robot;
     // Install signal handlers
     signal(SIGINT, Stop);
     signal(SIGTERM, Stop);
 
-    LidarBot *robot = new LidarBot(argv[1], argv[2]);
+    // Verify command line
+    if( argc == 2 )
+        robot = new LidarBot(NULL,argv[1]);
+    else if( argc == 3 )
+        robot = new LidarBot(argv[2], argv[1]);
+    else
+    {
+        printf("\n\nCommand line\n\n");
+        printf("%s %s", argv[0], "[lidar /dev/ttyUSB0] <motor /dev/ttyUSB1>\n\n");
+        return -1;
+    }
+
     robot->Move((unsigned char *)"s");
 
     printf("Start the loop\n");
     while(running)
     {
-        if(Algorithm(robot)<0)
-            break;
+        Algorithm(robot);
     }
 
     robot->Move((unsigned char *)"s");
+    delete robot;
     exit(0);
 }
 
-int Algorithm(LidarBot *robot)
+void Algorithm(LidarBot *robot)
 {
-        printf("\n");
-        if( int points = robot->ReadLidar() )
-        {
-            printf("%d-%d %d-%d %d-%d\n", robot->l_sector_start, robot->l_sector_end,
-                                          robot->f_sector_start, robot->f_sector_end, 
-                                          robot->r_sector_start, robot->r_sector_end);
-            printf("\n%f %f %f %d\n", robot->left.norm, robot->forward.norm, robot->right.norm, robot->direction_of_max_range);
-            printf("%f %f %f\n", robot->left.actual, robot->forward.actual, robot->right.actual);
-            robot->Move((unsigned char *)"r");
-            robot->VisualizeRanges();
-        }
+      SECTOR left, right, forward;
+ 
+      robot->Move((unsigned char *)"r");
+      printf("\n");
+      try
+      {
+          robot->ReadLidarRaw();
+      }
+      catch(...)
+      {  
+          printf("Error reading lidar\n");
+      }
+      robot->GetSectors(&left, &forward, &right);
+      printf("\033[0;0H");
+      for(int i=0; i<45; ++i)
+          printf("%90c\n", ' ');
+      printf("\033[0;0H");
+      printf("\n\n\n");
+      printf("%d-%d %d-%d %d-%d\n", robot->l_sector_start, robot->l_sector_end,
+                                    robot->f_sector_start, robot->f_sector_end, 
+                                   robot->r_sector_start, robot->r_sector_end);
+     printf("normalized: %8f %8f %8f\n", left.norm, forward.norm, right.norm);
+     printf("raw:        %8f %8f %8f\n", left.raw, forward.raw, right.raw);
+     printf("furthest:   %8f %d\n", robot->furthest.raw, robot->furthest.point);
+     printf("closest:    %8f %d\n", robot->closest.raw, robot->closest.point);
+     robot->VisualizeRanges();
 }
