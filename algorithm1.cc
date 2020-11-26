@@ -10,7 +10,8 @@
 // Personality
 #define TOO_CLOSE_ACTUAL  (float)(0.5)
 #define LOOKS_INTERESTING_ACTUAL (float)(1.5)
-
+#define FORWARD_GAIN      (float)(16.0)
+#define OFFSET_GAIN       (float)(8.0)
 
 enum STATE  {
                 STATE_STOP,
@@ -20,7 +21,7 @@ enum STATE  {
                 STATE_MOVE_FORWARD
             };
 
-int Algorithm(STATE, LidarBot *);
+STATE Algorithm(STATE, LidarBot *);
 
 // Used to exit the main loop via ctrl-c signal
 static bool running = true;
@@ -64,17 +65,18 @@ int main(int argc, char **argv)
         state = STATE_STOP;
 
     printf("Start the loop\n");
+    printf("\033[2J");
     while(running)
     {
-        if(Algorithm(state, robot)<0)
-            break;
+        state = Algorithm(state, robot);
     }
 
     robot->Move((unsigned char *)"s");
+    delete robot; // call desctructor
     exit(0);
 }
 
-int Algorithm(STATE state, LidarBot *robot)
+STATE Algorithm(STATE state, LidarBot *robot)
 {
     SECTOR left, right, forward;
 
@@ -88,28 +90,33 @@ int Algorithm(STATE state, LidarBot *robot)
         printf("Error reading lidar\n");
     }
     robot->GetSectors(&left, &forward, &right);
-    printf("\n\n\nnormalized: %f %f %f\n", left.norm, forward.norm, right.norm);
-    printf("raw: %f %f %f\n", left.raw, forward.raw, right.raw);
-    printf("furthest: %f %d\n", robot->max_range, robot->direction_of_max_range);
-    robot->VisualizeRanges();
+    printf("\033[0;0H");
+    for(int i=0; i<45; ++i)
+        printf("%90c\n", ' ');
+    printf("\033[0;0H");
+    printf("\n\n\n");
     printf("%d-%d %d-%d %d-%d\n", robot->l_sector_start, robot->l_sector_end,
                                   robot->f_sector_start, robot->f_sector_end, 
                                   robot->r_sector_start, robot->r_sector_end);
+    printf("normalized: %8f %8f %8f\n", left.norm, forward.norm, right.norm);
+    printf("raw:        %8f %8f %8f\n", left.raw, forward.raw, right.raw);
+    printf("furthest:   %8f %d\n", robot->furthest.raw, robot->furthest.point);
+    printf("closest:    %8f %d\n", robot->closest.raw, robot->closest.point);
     switch(state)
     {
         case STATE_STOP:
-            printf("stop\n");
+            printf("\nSTATE: STOP\n");
             robot->Move((unsigned char *)"s");
             break;
         case STATE_SET_TURN:
-            printf("rotate\n");
-            if(robot->direction_of_max_range < robot->f_sector_start)
+            printf("\nSTATE: LOOKING FOR SOMETHING INTERESTING\n");
+            if(robot->furthest.raw < robot->f_sector_start)
                 state = STATE_TURN_LEFT;
             else
                 state = STATE_TURN_RIGHT;
             break;
         case STATE_TURN_LEFT:
-            printf("Turning left\n");
+            printf("\nSTATE: TURNING LEFT\n");
             robot->Move((unsigned char *)"l");
 
             if( forward.raw > LOOKS_INTERESTING_ACTUAL )
@@ -119,7 +126,7 @@ int Algorithm(STATE state, LidarBot *robot)
             }
             break;
         case STATE_TURN_RIGHT:
-            printf("Turning right\n");
+            printf("\nSTATE: TURNING RIGHT\n");
             robot->Move((unsigned char *)"r");
 
             if( forward.raw > LOOKS_INTERESTING_ACTUAL )
@@ -129,14 +136,12 @@ int Algorithm(STATE state, LidarBot *robot)
             }
             break;
         case STATE_MOVE_FORWARD:
-            // LM(0-9) = 4.5*F+4.5*R    RM(0-9) = 4.5*F+4.5*L
-            int speed[] = {'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'};
             unsigned char m[3];
 
-            printf("forward ");
+            printf("\nSTATE: FORWARD ");
             m[0] = 'm';
-            m[1] = speed[(int)(7.0*forward.norm+7.0*right.norm)];
-            m[2] = speed[(int)(7.0*forward.norm+7.0*left.norm)];
+            m[1] = (unsigned char)('A'+(int)(FORWARD_GAIN*forward.norm+OFFSET_GAIN*left.norm));
+            m[2] = (unsigned char)('A'+(int)(FORWARD_GAIN*forward.norm+OFFSET_GAIN*right.norm));
             printf(" %c %c\n", m[1], m[2]);
             robot->Move(m);
             if(right.raw < TOO_CLOSE_ACTUAL || forward.raw < TOO_CLOSE_ACTUAL || left.raw < TOO_CLOSE_ACTUAL)
@@ -146,4 +151,6 @@ int Algorithm(STATE state, LidarBot *robot)
             }
             break;
     } // switch
+    robot->VisualizeRanges();
+    return state;
 }

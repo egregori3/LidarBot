@@ -29,19 +29,27 @@ void LidarBot::ReadLidarRaw(void)
     if(laser->doProcessSimple(scan, hardError))
     {
         int     size  = (int)scan.ranges.size();
-        int     max_point = 0;
         SECTOR  tmp;
 
-        // max
-        float max = 0.0;
+        furthest.raw = 0.0;
+        closest.raw = 16.0;
         points.clear();
         for(int i=0; i<size; ++i)
         {
             float range = scan.ranges[i];
-            if (range > max)
+
+            // Find furthest distance
+            if (range > furthest.raw)
             {
-                max = range;
-                max_point = i;
+                furthest.raw  = range;
+                furthest.point = i;
+            }
+
+            // Find closest distance
+            if (range > 0.0 && range < closest.raw)
+            {
+                closest.raw  = range;
+                closest.point = i;
             }
 
             tmp.max = false;
@@ -62,11 +70,9 @@ void LidarBot::ReadLidarRaw(void)
             points.push_back(tmp);
         }
 
-        points[max_point].max = true;
-        direction_of_max_range = max_point;
-        max_range = max;
+        points[furthest.point].max = true;
 
-        if(max == 0.0)
+        if(furthest.raw == 0.0)
         {
             throw(runtime_error("max 0"));
         }
@@ -74,7 +80,7 @@ void LidarBot::ReadLidarRaw(void)
         // Normalize
         for(int i=0; i<(int)points.size(); ++i)
         {
-            points[i].norm /= max;
+            points[i].norm /= furthest.raw;
         }
     }
 }
@@ -138,10 +144,6 @@ void LidarBot::VisualizeRanges(void)
     int points_per_column = points.size()/40;
     int k, i, id;
 
-    printf("\n%d-%d %d-%d %d-%d\n", l_sector_start, l_sector_end,
-                                  f_sector_start, f_sector_end, 
-                                  r_sector_start, r_sector_end);
-
     for(i=0; i<((int)points.size()-points_per_column); )
     {
         float max = 0.0;
@@ -161,7 +163,7 @@ void LidarBot::VisualizeRanges(void)
             printf("%c", points[id].type);
         }
         if(points[i].max == true)
-            printf("!");
+            printf(">");
         printf(" -  %f", max);
     }
 }
@@ -189,16 +191,20 @@ LidarBot::LidarBot(char *motor_port, char *lidar_port)
     if(motor_port != NULL)
     {
         // Instantiate the motor driver
-        printf("Instantiating driver\n");
-        miiboo_driver *miiboo_object = new miiboo_driver(motor_port);
+        printf("Instantiating motor driver\n");
+        miiboo_object = new miiboo_driver(motor_port);
         miiboo_object->move((unsigned char *)"s");
     }
     else
-        miiboo_driver *miiboo_object = NULL;
+    {
+        printf("MOTOR DRIVER DISABLED!!!\n");
+        miiboo_object = NULL;
+    }
 }
 
 LidarBot::~LidarBot()
 {
+    printf("\n\nShutting down robot\n\n");
     if(miiboo_object != NULL)
         miiboo_object->move((unsigned char *)"s");
     laser->turnOff();

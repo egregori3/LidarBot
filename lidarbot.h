@@ -35,8 +35,7 @@ class LidarBot
         int l_sector_start, r_sector_start;
         int l_sector_end, r_sector_end;
         int f_sector_start, f_sector_end;
-        int direction_of_max_range; // Sector containing furthest distance
-        float max_range;
+        SECTOR furthest, closest;
 
         LidarBot(char *motor_port, char *lidar_port);
         void GetSectors(SECTOR *left, SECTOR *forward, SECTOR *right);
