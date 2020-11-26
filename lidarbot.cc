@@ -15,12 +15,12 @@
 #define SCAN_END        540
 #define CENTER          (((SCAN_END-SCAN_START)/2)+SCAN_START)
 #define WIDTH           60  // degrees*2
-#define L_SECTOR_START  (CENTER-WIDTH-(WIDTH/2))
-#define L_SECTOR_END    (CENTER-(WIDTH/2))
-#define R_SECTOR_START  (CENTER+(WIDTH/2))
-#define R_SECTOR_END    (CENTER+WIDTH+(WIDTH/2))
-#define F_SECTOR_START  L_SECTOR_END
-#define F_SECTOR_END    R_SECTOR_START
+#define R_SECTOR_START  (CENTER-WIDTH-(WIDTH/2))
+#define R_SECTOR_END    (CENTER-(WIDTH/2))
+#define L_SECTOR_START  (CENTER+(WIDTH/2))
+#define L_SECTOR_END    (CENTER+WIDTH+(WIDTH/2))
+#define F_SECTOR_START  R_SECTOR_END
+#define F_SECTOR_END    L_SECTOR_START
 
 using namespace std;
 
@@ -50,9 +50,9 @@ void LidarBot::ReadLidarRaw(void)
             tmp.raw = range;
             tmp.norm = range;
 
-            if(i >= L_SECTOR_START && i <= L_SECTOR_END)
+            if(i >= L_SECTOR_START && i < L_SECTOR_END)
                 tmp.type = 'L';
-            else if(i >= R_SECTOR_START && i <= R_SECTOR_END)
+            else if(i > R_SECTOR_START && i <= R_SECTOR_END)
                 tmp.type = 'R';
             else if(i >= F_SECTOR_START && i <= F_SECTOR_END)
                 tmp.type = 'F';
@@ -85,10 +85,7 @@ void LidarBot::GetSectors(SECTOR *left, SECTOR *forward, SECTOR *right)
     float leftc, rightc, forwardc;
     int pointc = (int)points.size();
 
-    direction_of_max_range = -1;
-
     // Get data from Lidar
-    ReadLidarRaw();
     leftc  = 0.0;
     rightc = 0.0;
     forwardc = 0.0;
@@ -159,7 +156,7 @@ void LidarBot::VisualizeRanges(void)
         }
 
         printf("\n");
-        for(k=0; k<(int)(40.0*max); ++k)
+        for(k=0; k<(int)(80.0*max); ++k)
         {
             printf("%c", points[id].type);
         }

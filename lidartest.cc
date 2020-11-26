@@ -24,7 +24,8 @@ static void Stop(int signo)
 
 int main(int argc, char **argv)
 {
-    bool            save = false;
+    bool save = false;
+    SECTOR left, right, forward;
 
     // Verify command line
     if( argc == 2 )
@@ -56,6 +57,10 @@ int main(int argc, char **argv)
         {
             printf("Error reading lidar\n");
         }
+        robot->GetSectors(&left, &forward, &right);
+        printf("\n\n\nnormalized: %f %f %f\n", left.norm, forward.norm, right.norm);
+        printf("raw: %f %f %f\n", left.raw, forward.raw, right.raw);
+        printf("furthest: %f %d\n", robot->max_range, robot->direction_of_max_range);
         robot->VisualizeRanges();
     }
 
