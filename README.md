@@ -4,6 +4,7 @@
 
 ydlidar X4
  https://www.amazon.com/gp/product/B07DBYHJVQ/ref=ppx_yo_dt_b_asin_title_o01_s00?ie=UTF8&psc=1
+ https://www.ydlidar.com/Public/upload/files/2020-04-13/YDLIDAR%20X4%20Datasheet.pdf
 
 Motorized Base
  https://www.amazon.com/pop-mart-Laboratory-Programming-Recognition/dp/B07X2HQ23D/

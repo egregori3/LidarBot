@@ -9,34 +9,39 @@
 #include "miiboo_driver_class.h"
 
 using namespace ydlidar;
+using namespace std;
 
 typedef struct 
 {
-    float actual;
+    bool  max;
+    char  type;
+    int   point;
+    float raw;
     float norm;
 }   SECTOR;
 
 class LidarBot
 {
     private:
-        miiboo_driver *miiboo_object;
-        CYdLidar      *laser;
-        LaserScan     scan;         // Lidar results
-        SECTOR        *sectors;
-        bool          hardError;
+        miiboo_driver  *miiboo_object;
+        CYdLidar       *laser;
+        LaserScan      scan;         // Lidar results
+        vector<SECTOR> points;
+        bool           hardError;
 
         float AverageSectors(int, int, char);
 
     public:
-        SECTOR left, right, forward;
         int l_sector_start, r_sector_start;
         int l_sector_end, r_sector_end;
         int f_sector_start, f_sector_end;
         int direction_of_max_range; // Sector containing furthest distance
+        float max_range;
 
         LidarBot(char *motor_port, char *lidar_port);
-        int ReadLidar(void);
-        int VisualizeRanges(void);
+        void GetSectors(SECTOR *left, SECTOR *forward, SECTOR *right);
+        void ReadLidarRaw(void);
+        void VisualizeRanges(void);
         void Move(unsigned char *cmd)
         {
             if(miiboo_object != NULL)

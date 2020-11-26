@@ -13,145 +13,183 @@
 // Break the scan into SECTORS
 #define SCAN_START      180
 #define SCAN_END        540
-#define SCANS           (SCAN_END-SCAN_START)
-#define SECTORS         36
-#define WIDTH           4
-#define L_SECTOR_START  ((SECTORS/2)-WIDTH-(WIDTH/2))
-#define L_SECTOR_END    ((SECTORS/2)-(WIDTH/2))
-#define R_SECTOR_END    ((SECTORS/2)+WIDTH+(WIDTH/2))
-#define R_SECTOR_START  ((SECTORS/2)+(WIDTH/2))
+#define CENTER          (((SCAN_END-SCAN_START)/2)+SCAN_START)
+#define WIDTH           60  // degrees*2
+#define L_SECTOR_START  (CENTER-WIDTH-(WIDTH/2))
+#define L_SECTOR_END    (CENTER-(WIDTH/2))
+#define R_SECTOR_START  (CENTER+(WIDTH/2))
+#define R_SECTOR_END    (CENTER+WIDTH+(WIDTH/2))
 #define F_SECTOR_START  L_SECTOR_END
 #define F_SECTOR_END    R_SECTOR_START
-#define SCANS_SECTOR    (SCANS/SECTORS)
 
 using namespace std;
 
-// Read the lidar
-int LidarBot::ReadLidar(void)
+void LidarBot::ReadLidarRaw(void)
 {
-    float       max;
-    int         i;
+    if(laser->doProcessSimple(scan, hardError))
+    {
+        int     size  = (int)scan.ranges.size();
+        int     max_point = 0;
+        SECTOR  tmp;
+
+        // max
+        float max = 0.0;
+        points.clear();
+        for(int i=0; i<size; ++i)
+        {
+            float range = scan.ranges[i];
+            if (range > max)
+            {
+                max = range;
+                max_point = i;
+            }
+
+            tmp.max = false;
+            tmp.type = '*';
+            tmp.point = i;
+            tmp.raw = range;
+            tmp.norm = range;
+
+            if(i >= L_SECTOR_START && i <= L_SECTOR_END)
+                tmp.type = 'L';
+            else if(i >= R_SECTOR_START && i <= R_SECTOR_END)
+                tmp.type = 'R';
+            else if(i >= F_SECTOR_START && i <= F_SECTOR_END)
+                tmp.type = 'F';
+            else
+                tmp.type = '*';
+
+            points.push_back(tmp);
+        }
+
+        points[max_point].max = true;
+        direction_of_max_range = max_point;
+        max_range = max;
+
+        if(max == 0.0)
+        {
+            throw(runtime_error("max 0"));
+        }
+
+        // Normalize
+        for(int i=0; i<(int)points.size(); ++i)
+        {
+            points[i].norm /= max;
+        }
+    }
+}
+
+// Format points into l,f,r sectors
+void LidarBot::GetSectors(SECTOR *left, SECTOR *forward, SECTOR *right)
+{
+    float leftc, rightc, forwardc;
+    int pointc = (int)points.size();
 
     direction_of_max_range = -1;
 
     // Get data from Lidar
-    if(laser->doProcessSimple(scan, hardError))
+    ReadLidarRaw();
+    leftc  = 0.0;
+    rightc = 0.0;
+    forwardc = 0.0;
+    left->norm = 0.0;
+    right->norm = 0.0;
+    forward->norm = 0.0;
+    left->raw = 0.0;
+    right->raw = 0.0;
+    forward->raw = 0.0;
+
+    if(pointc > 0)
     {
-        int points  = (unsigned int)scan.ranges.size();
-
-        printf("points = %d\n", points);
-        // Partition scan ranges into sectors with each sector equal to the max range in the sector.
-        for(int k=0; k<SECTORS; ++k)
+        for(int i=0; i<(int)points.size(); ++i)
         {
-            // sector equal max range in sector
-            for(i=0, max=0.0; i<SCANS_SECTOR; ++i)
+            if(points[i].raw > 0.0)
             {
-                float range = scan.ranges[SCAN_START+k*SCANS_SECTOR+i];
-                if( range > max)
-                    max = range;
-            }
-            sectors[k].norm   = max;
-            sectors[k].actual = max;
-        }
-
-        // Find the sector with the longest distance
-        for(i=0, max=0.0; i<SECTORS; ++i)
-        {
-            if( sectors[i].norm > max )
-            {
-                max = sectors[i].norm;
-                direction_of_max_range = i;
+                if(points[i].type == 'L')
+                {
+                    left->raw += points[i].raw;
+                    left->norm += points[i].norm;
+                    leftc += 1.0;
+                }
+                if(points[i].type == 'F')
+                {
+                    forward->raw += points[i].raw;
+                    forward->norm += points[i].norm;
+                    forwardc += 1.0;
+                }
+                if(points[i].type == 'R')
+                {
+                    right->raw += points[i].raw;
+                    right->norm += points[i].norm;
+                    rightc += 1.0;
+                }
             }
         }
 
-        // Normalize ranges to 1.0  (range/max_range)
-        if( max > 0.0 )
-        {
-            for(i=0; i<SECTORS; ++i)
-                sectors[i].norm = sectors[i].norm/max;
-        }
-
-        left.norm = AverageSectors(L_SECTOR_START, L_SECTOR_END, 'n' );
-        right.norm = AverageSectors(R_SECTOR_START, R_SECTOR_END, 'n' );
-        forward.norm = AverageSectors(F_SECTOR_START, F_SECTOR_END, 'n' );
-        left.actual = AverageSectors(L_SECTOR_START, L_SECTOR_END, 'a' );
-        right.actual = AverageSectors(R_SECTOR_START, R_SECTOR_END, 'a' );
-        forward.actual = AverageSectors(F_SECTOR_START, F_SECTOR_END, 'a' );
-
-        return(points);
+        left->raw /= leftc;
+        left->norm /= leftc;
+        right->raw /= rightc;
+        right->norm /= rightc;
+        forward->raw /= forwardc;
+        forward->norm /= forwardc;
     }
-
-    return -1;
 }
 
-// Visualize the data
-int LidarBot::VisualizeRanges(void)
+// Visualize the data in a 40 x 40 space
+void LidarBot::VisualizeRanges(void)
 {
-    for(int i=0; i<SECTORS; ++i)
+    int points_per_column = points.size()/40;
+    int k, i, id;
+
+    printf("\n%d-%d %d-%d %d-%d\n", l_sector_start, l_sector_end,
+                                  f_sector_start, f_sector_end, 
+                                  r_sector_start, r_sector_end);
+
+    for(i=0; i<((int)points.size()-points_per_column); )
     {
-        printf("\n %0d", i);
-        for(int k=0; k<(int)(40.0*sectors[i].norm); ++k)
+        float max = 0.0;
+        for(k=0, id=0; k<points_per_column; ++k)
         {
-            if( i>=F_SECTOR_START && i<=F_SECTOR_END )
-                printf("F");
-            else if( i>=L_SECTOR_START && i<= L_SECTOR_END )
-                printf("L");
-            else if( i>=R_SECTOR_START && i<= R_SECTOR_END )
-                printf("R");
-            else
-                printf("*");
+            if(points[i].norm > max)
+            {
+                max = points[i].norm;
+                id = i;
+            }
+            ++i;
         }
-        if( direction_of_max_range == i )
-            printf(">");
-        printf(" - %f",sectors[i].norm);
+
+        printf("\n");
+        for(k=0; k<(int)(40.0*max); ++k)
+        {
+            printf("%c", points[id].type);
+        }
+        if(points[i].max == true)
+            printf("!");
+        printf(" -  %f", max);
     }
-
-    return 0;
-}
-
-float LidarBot::AverageSectors(int start, int end, char type)
-{
-    float count = 0.0;
-    float avg = 0.0;
-
-    for(int i=start; i<=end; ++i)
-    {
-        if( type == 'n' )
-        {
-            avg += sectors[i].norm;
-            if( sectors[i].norm > 0.0 )
-                count += 1.0;
-        }
-        else
-        {
-            avg += sectors[i].actual;
-            if( sectors[i].actual > 0.0 )
-                count += 1.0;
-        }
-    }
-
-    avg /= count;
-    return avg;
 }
 
 LidarBot::LidarBot(char *motor_port, char *lidar_port)
 {
+    printf("LidarBot Constructor\n");
     l_sector_start = L_SECTOR_START;
     r_sector_start = R_SECTOR_START;
     f_sector_start = F_SECTOR_START;
     l_sector_end = L_SECTOR_END;
     r_sector_end = R_SECTOR_END;
     f_sector_end = F_SECTOR_END;
+
     // Configure lidar driver
     printf("\n\nInstantiate lidar driver\n");
-    CYdLidar *laser = new CYdLidar();
-    sectors = new SECTOR[SECTORS];
+    laser = new CYdLidar();
+
+    // Instantiates lidar
     laser->setSerialPort(lidar_port);
     laser->setSerialBaudrate(115200);
     laser->setIntensities(0);
     laser->initialize();
 
-    if(lidar_port == NULL)
+    if(motor_port != NULL)
     {
         // Instantiate the motor driver
         printf("Instantiating driver\n");

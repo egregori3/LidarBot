@@ -24,17 +24,17 @@ static void Stop(int signo)
 
 int main(int argc, char **argv)
 {
-    bool            move = false;
+    bool            save = false;
 
     // Verify command line
-    if( argc == 3 )
-        move = false;
-    else if( argc == 4 )
-        move = true;
+    if( argc == 2 )
+        save = false;
+    else if( argc == 3 )
+        save = true;
     else
     {
         printf("\n\nCommand line\n\n");
-        printf("%s %s", argv[0], "[lidar /dev/ttyUSB1] [miiboo /dev/ttyUSB0] enable\n\n");
+        printf("%s %s", argv[0], "[lidar /dev/ttyUSB1] <filename>\n\n");
         return -1;
     }
 
@@ -42,11 +42,20 @@ int main(int argc, char **argv)
     signal(SIGINT, Stop);
     signal(SIGTERM, Stop);
 
-    LidarBot *robot = new LidarBot(argv[1], argv[2]);
+    printf("Instantiating LidarBot class\n");
+    LidarBot *robot = new LidarBot(NULL, argv[1]);
 
     printf("Start the loop\n");
     while(running)
     {
+        try
+        {
+            robot->ReadLidarRaw();
+        }
+        catch(...)
+        {
+            printf("Error reading lidar\n");
+        }
         robot->VisualizeRanges();
     }
 
