@@ -50,25 +50,25 @@ I also added a static library build option.
 
 https://google.github.io/styleguide/cppguide.html
 
-*Tabs Versus Spaces:* Use only spaces, and indent 2 spaces at a time (https://www.youtube.com/watch?v=SsoOG6ZeyUI).
+**Tabs Versus Spaces:** Use only spaces, and indent 2 spaces at a time (https://www.youtube.com/watch?v=SsoOG6ZeyUI).
 
-*File Names:* Filenames should be all lowercase and can include underscores (_) or dashes (-). Follow the convention that your project uses. If there is no consistent local pattern to follow, prefer "_".
+**File Names:** Filenames should be all lowercase and can include underscores (_) or dashes (-). Follow the convention that your project uses. If there is no consistent local pattern to follow, prefer "_".
 
-*Extensions:*  source.cc,  header.h
+**Extensions:**  source.cc,  header.h
 
-*Local variables:* Place a function's variables in the narrowest scope possible, and initialize variables in the declaration.
+**Local variables:** Place a function's variables in the narrowest scope possible, and initialize variables in the declaration.
 
-*Function length:* Prefer small and focused functions.
+**Function length:** Prefer small and focused functions.
 
-*Efficiency:* Use ++i as opposed to i++.  (https://medium.com/better-programming/stop-using-i-in-your-loops-1f906520d548)
+**Efficiency:** Use ++i as opposed to i++.  (https://medium.com/better-programming/stop-using-i-in-your-loops-1f906520d548)
 
-*Integers:* <cstdint> defines types like int16_t, uint32_t, int64_t, etc. You should always use those in preference to short, unsigned long long and the like, when you need a guarantee on the size of an integer. Of the C integer types, only int should be used.
+**Integers:** <cstdint> defines types like int16_t, uint32_t, int64_t, etc. You should always use those in preference to short, unsigned long long and the like, when you need a guarantee on the size of an integer. Of the C integer types, only int should be used.
 
-*Variable Names:* The names of variables (including function parameters) and data members are all lowercase, with underscores between words. Data members of classes (but not structs) additionally have trailing underscores. For instance: a_local_variable, a_struct_data_member,a_class_data_member_.
+**Variable Names:** The names of variables (including function parameters) and data members are all lowercase, with underscores between words. Data members of classes (but not structs) additionally have trailing underscores. For instance: a_local_variable, a_struct_data_member,a_class_data_member_.
 
-*Function Names:* Ordinarily, functions should start with a capital letter and have a capital letter for each new word.
+**Function Names:** Ordinarily, functions should start with a capital letter and have a capital letter for each new word.
 
-*Comments:*
+**Comments:**
 
 Comments are absolutely vital to keeping our code readable. The following rules describe what you should comment and where. But remember: while comments are very important, the best code is self-documenting. Giving sensible names to types and variables is much better than using obscure names that you must then explain through comments.
 
@@ -78,9 +78,9 @@ Almost every function declaration should have comments immediately preceding it 
 
 In your implementation you should have comments in tricky, non-obvious, interesting, or important parts of your code.
 
-*Function Calls:* If the arguments do not all fit on one line, they should be broken up onto multiple lines, with each subsequent line aligned with the first argument. Do not add spaces after the open paren or before the close paren:
+**Function Calls:** If the arguments do not all fit on one line, they should be broken up onto multiple lines, with each subsequent line aligned with the first argument. Do not add spaces after the open paren or before the close paren:
 
-*Use of spaces:*
+**Use of spaces:**
 
 if (condition) {               // Proper use of spaces
 x = *p;
@@ -102,4 +102,4 @@ x = -5;
 ++x;
 if (x && !y)i
 
-*Return Values:* Do not needlessly surround the return expression with parentheses.
+**Return Values:** Do not needlessly surround the return expression with parentheses.
